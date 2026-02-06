@@ -1,12 +1,11 @@
-
+import numpy as np
+import random
 
 # ============================================================================
 # REPRODUCIBILITY / GLOBAL UTILS
 # ============================================================================
 
 def set_seed(seed: int = 0):
-    import numpy as np
-    import random
     """Make runs reproducible (as much as possible)."""
     random.seed(seed)
     np.random.seed(seed)
