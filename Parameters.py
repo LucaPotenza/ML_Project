@@ -1,3 +1,5 @@
+import torch
+
 class Parameters:
     # Class that contains all the parameters of the experiment
 
