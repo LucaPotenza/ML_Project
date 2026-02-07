@@ -1,5 +1,5 @@
 class Parameters:
-    """Classe che contiene tutti i parametri dell'esperimento"""
+    # Class that contains all the parameters of the experiment
 
     def __init__(self):
         # Parametri training
