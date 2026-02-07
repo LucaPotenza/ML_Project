@@ -1,3 +1,5 @@
+from pathlib import Path
+
 # These should be global, and populated once.
 # I'll add checks in load_shrec13_data to ensure they are populated.
 # label_names = []
