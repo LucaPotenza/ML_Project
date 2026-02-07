@@ -1,13 +1,169 @@
 from pathlib import Path
-
-# These should be global, and populated once.
-# I'll add checks in load_shrec13_data to ensure they are populated.
-# label_names = []
-# class_name_to_id = {}
-# model_to_class = {}
+import numpy as np
 
 # Global Loader
+def load_all_dataset_components(prm):
+    """
+    Loads all sketch and view data, and generates training pairs.
+    """
+    print("\n[INFO] Loading all dataset components...")
 
+    # Load sketches and views
+    (train_sketches, test_sketches, all_views,
+     train_sketch_labels, test_sketch_labels, all_view_labels,
+     label_names, class_name_to_id, model_to_class) = load_shrec13_data(prm)
+
+    # Generate training pairs
+    train_triples, train_labels = generate_pairs_shrec13(prm, train_sketch_labels, all_view_labels)
+
+    # Data augmentation (only for training sketches if enabled)
+    # The original load_data had data augmentation with .mat files.
+    # If a new augmentation method is desired for the new PNG sketches, it should be implemented here.
+    # For now, we'll assume augmentation is handled externally or not applied in this specific setup.
+    # If prm.data_aug is True, you might add more sketches/labels here.
+    # For simplicity, if data_aug is True but we don't have new data, it currently does nothing.
+    # This might need revisiting if augmentation is critical and needs to be re-implemented for PNGs.
+    if prm.data_aug:
+        print("Data augmentation is enabled but currently no specific augmentation for PNGs is implemented here.")
+        print("This needs to be added if image augmentation is desired for the new dataset structure.")
+
+
+    return {
+        'train_sketches': train_sketches,
+        'test_sketches': test_sketches,
+        'views': all_views, # Note: 'views' now contains all views, not separated by train/test for views
+        'train_sketch_labels': train_sketch_labels,
+        'test_sketch_labels': test_sketch_labels,
+        'view_labels': all_view_labels, # All view labels
+        'train_triples': train_triples,
+        'train_labels': train_labels,
+        'label_names': label_names,
+        'class_name_to_id': class_name_to_id,
+        'model_to_class': model_to_class
+    }
+
+# Triples Generator
+def generate_pairs_shrec13(prm, sketch_labels, view_labels):
+    """
+    Genera coppie per training
+
+    Formato triples: [sketch_idx, view_idx, sketch_peer_idx, view_peer_idx]
+    Formato labels: [match_flag, sketch_class, view_class]
+
+    - match_flag: 0 = coppia positiva (stessa classe), 1 = coppia negativa (classi diverse)
+    - sketch_peer: sempre dalla stessa classe di sketch
+    - view_peer: sempre dalla stessa classe di view
+    """
+
+    triples = []
+    labels = []
+
+    sketch_labels = sketch_labels.flatten()
+    view_labels = view_labels.flatten()
+    categories = np.unique(sketch_labels)
+
+    max_pos = 50  # Max sketch per classe
+    max_pos_view = 50  # Max view positive per classe
+    max_neg_view = 50  # Max view negative
+
+    posCt = 0
+    negCt = 0
+
+    for c in categories:
+        # ===== SKETCH DELLA CLASSE CORRENTE =====
+        inclass_sketch = np.where(sketch_labels == c)[0]
+        if len(inclass_sketch) == 0:
+            continue
+
+        # Limita e mischia
+        sketch_ind = np.arange(len(inclass_sketch))
+        prm.rng.shuffle(sketch_ind)
+        selected_sketch = inclass_sketch[sketch_ind[:min(max_pos, len(sketch_ind))]]
+
+        # ===== VIEW DELLA CLASSE CORRENTE (per coppie positive) =====
+        inclass_view = np.where(view_labels == c)[0]
+        if len(inclass_view) == 0:
+            continue
+
+        # Limita e mischia
+        view_ind = np.arange(len(inclass_view))
+        prm.rng.shuffle(view_ind)
+        selected_view = inclass_view[view_ind[:min(max_pos_view, len(view_ind))]]
+
+        # ===== VIEW DI ALTRE CLASSI (per coppie negative) =====
+        other_view = np.where(view_labels != c)[0]
+        if len(other_view) == 0:
+            continue
+
+        # Limita e mischia
+        view_neg_ind = np.arange(len(other_view))
+        prm.rng.shuffle(view_neg_ind)
+        other_view_selected = other_view[view_neg_ind[:min(max_neg_view, len(view_neg_ind))]]
+
+        # ===== GENERA PEER PER POSITIVE =====
+        # sketch_peer: sketch casuali dalla stessa classe c
+        sketch_pos_peer = prm.rng.choice(inclass_sketch, size=len(selected_view), replace=True)
+
+        # view_peer: view casuali dalla stessa classe c (mischiati)
+        view_peer_ind = np.arange(len(selected_view))
+        prm.rng.shuffle(view_peer_ind)
+        view_pos_peer = selected_view[view_peer_ind]
+
+        # ===== GENERA COPPIE POSITIVE =====
+        for s in selected_sketch:
+            # Limita a max 5 view positive per sketch
+            for i in range(min(len(selected_view), 5)):
+                v = selected_view[i]
+                sp = sketch_pos_peer[i]
+                vp = view_pos_peer[i]
+
+                triples.append([s, v, sp, vp])
+                labels.append([0, int(c), int(c)])  # match=0, entrambi classe c
+                posCt += 1
+
+        # ===== GENERA PEER PER NEGATIVE =====
+        # Per ogni view negativa, serve sketch_peer e view_peer
+        num_neg_pairs = len(other_view_selected)
+
+        # sketch_peer: sketch casuali dalla classe c
+        sketch_neg_peer = prm.rng.choice(inclass_sketch, size=num_neg_pairs, replace=True)
+
+        # view_peer: per ogni view negativa, sceglie un peer dalla STESSA classe della view
+        view_neg_peer = []
+        for v_neg in other_view_selected:
+            v_class = view_labels[v_neg]
+            v_class_views = np.where(view_labels == v_class)[0]
+            if len(v_class_views) > 0:
+                vp = prm.rng.choice(v_class_views)
+                view_neg_peer.append(vp)
+            else:
+                view_neg_peer.append(v_neg)  # Fallback
+
+        # ===== GENERA COPPIE NEGATIVE =====
+        for s in selected_sketch:
+            # Limita a max 10 view negative per sketch
+            for i in range(min(len(other_view_selected), 10)):
+                v = other_view_selected[i]
+                sp = sketch_neg_peer[i]
+                vp = view_neg_peer[i]
+                v_class = view_labels[v]
+
+                triples.append([s, v, sp, vp])
+                labels.append([1, int(c), int(v_class)])  # match=1, classi diverse
+                negCt += 1
+
+    triples = np.array(triples)
+    labels = np.array(labels)
+
+    # Shuffle finale
+    idx = np.arange(len(triples))
+    prm.rng.shuffle(idx)
+
+    print(f"Generated {len(triples)} pairs ({posCt} positive, {negCt} negative)")
+
+    return triples[idx], labels[idx]
+
+# Global Data Loader
 def load_shrec13_data(prm):
     """
     Carica sketch PNG per train e test e genera view da modelli 3D
@@ -96,7 +252,7 @@ def load_shrec13_data(prm):
 
     return train_sketches, test_sketches, views, train_sketch_labels, test_sketch_labels, view_labels, label_names, class_name_to_id, model_to_class
 
-# FUNZIONE PER CARICARE VIEWS DA UNA DIRECTORY
+# FUNCTION TO LOAD VIEWS FROM A DIRECTORY
 def load_views_from_dir(views_dir, prm):
     views_list = []
     view_labels_list = [] # Initialize view_labels_list
@@ -139,7 +295,7 @@ def load_views_from_dir(views_dir, prm):
 
     return views, views_labels
 
-# FUNZIONE PER CARICARE SKETCH DA UNA DIRECTORY
+# FUNCTION TO LOAD SKETCH FROM A DIRECTORY
 def load_sketches_from_dir(sketch_dir, prm):
     sketches_list = []
     sketch_labels_list = []
