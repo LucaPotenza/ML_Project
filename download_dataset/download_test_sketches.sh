@@ -2,7 +2,7 @@
 mkdir -p /content/test_schetch
 
 # 2️⃣ Path to the testing set zip file
-ZIP_PATH="/content/drive/MyDrive/datasets/shrec13/SBR/DataSets/SHREC13_SBR_TESTING_SKETCHES.zip"
+ZIP_PATH="/content/datasets/shrec13/SBR/DataSets/SHREC13_SBR_TESTING_SKETCHES.zip"
 
 # 3️⃣ Extract everything into a temporary folder
 unzip -o "$ZIP_PATH" -d /content/test_schetch_temp

@@ -2,7 +2,7 @@
 mkdir -p /content/train_schetch
 
 # 2️⃣ Path to the zip file
-ZIP_PATH="/content/drive/MyDrive/datasets/shrec13/SBR/DataSets/SHREC13_SBR_TRAINING_SKETCHES.zip"
+ZIP_PATH="/content/datasets/shrec13/SBR/DataSets/SHREC13_SBR_TRAINING_SKETCHES.zip"
 
 # 3️⃣ Extract only the necessary folders directly into /content/train_schetch_temp
 unzip -o "$ZIP_PATH" -d /content/train_schetch_temp
