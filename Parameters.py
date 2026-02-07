@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+import configparser
 
 class Parameters:
     # Class that contains all the parameters of the experiment
