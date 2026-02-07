@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 
 class Parameters:
     # Class that contains all the parameters of the experiment
