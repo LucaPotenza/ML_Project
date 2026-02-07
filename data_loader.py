@@ -36,7 +36,7 @@ def load_shrec13_data(prm):
     test_sketch_dir = Path('/content/test_schetch')
     views_dir = Path('/content/views')
 
-    # ===== COSTRUISCI MAPPATURA LABEL NAMES =====
+    # ===== BUILD LABEL NAMES MAPPING =====
     class_file = Path('/content/evaluation/SHREC13_SBR_Model.cla')
 
 
@@ -83,11 +83,11 @@ def load_shrec13_data(prm):
         raise FileNotFoundError(f"Class file not found: {class_file}")
 
     # ===== CARICA SKETCH TRAIN E TEST =====
-    train_sketches, train_sketch_labels = load_sketches_from_dir(train_sketch_dir)
+    train_sketches, train_sketch_labels = load_sketches_from_dir(train_sketch_dir, prm)
 
-    test_sketches, test_sketch_labels = load_sketches_from_dir(test_sketch_dir)
+    test_sketches, test_sketch_labels = load_sketches_from_dir(test_sketch_dir, prm)
 
-    views_list, view_labels_list = load_views_from_dir(views_dir)
+    views_list, view_labels_list = load_views_from_dir(views_dir, prm)
 
     views = np.array(views_list)
     view_labels = np.array(view_labels_list).reshape(-1, 1)
@@ -95,7 +95,7 @@ def load_shrec13_data(prm):
     return train_sketches, test_sketches, views, train_sketch_labels, test_sketch_labels, view_labels, label_names, class_name_to_id, model_to_class
 
 # FUNZIONE PER CARICARE VIEWS DA UNA DIRECTORY
-def load_views_from_dir(views_dir):
+def load_views_from_dir(views_dir, prm):
     views_list = []
     view_labels_list = [] # Initialize view_labels_list
 
@@ -113,7 +113,7 @@ def load_views_from_dir(views_dir):
 
         if shape[0] != prm.inputWH or shape[1] != prm.inputWH:
           img = cv2.resize(img, (prm.inputWH, prm.inputWH))
- # controllare meglio il resizing se non è troppo
+        # controllare meglio il resizing se non è troppo
 
         # Normalizza [0, 255] → [0, 1]
         img = img.astype(np.float32) / 255.0
@@ -126,7 +126,7 @@ def load_views_from_dir(views_dir):
         # Corrected line: Use png_file.name to get the string representation
         model_id = png_file.name.split('_')[0]
 
-        # Rimuovi la 'm' iniziale se presente
+        # Remove initial "m" if present
         if model_id.startswith('m'):
             model_id = model_id[1:]
 
@@ -138,7 +138,7 @@ def load_views_from_dir(views_dir):
     return views, views_labels
 
 # FUNZIONE PER CARICARE SKETCH DA UNA DIRECTORY
-def load_sketches_from_dir(sketch_dir):
+def load_sketches_from_dir(sketch_dir, prm):
     sketches_list = []
     sketch_labels_list = []
 
