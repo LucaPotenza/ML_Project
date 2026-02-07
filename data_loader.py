@@ -1,5 +1,6 @@
 from pathlib import Path
 import numpy as np
+import cv2
 
 # Global Loader
 def load_all_dataset_components(prm):
