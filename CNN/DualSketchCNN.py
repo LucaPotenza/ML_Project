@@ -1,5 +1,5 @@
 import torch.nn as nn
-from SketchCNN import SketchCNN
+from ML_Project.CNN.SketchCNN import SketchCNN
 
 # ============================================================================
 # DUAL MODEL (two separate CNNs)
