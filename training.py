@@ -1,6 +1,7 @@
 import os
 
-from ML_Project.Parameters import Parameters
+import Parameters
+#from ML_Project.Parameters import Parameters
 
 # Epoch training
 def train_epoch(model, train_loader, optimizer, prm, epoch, scheduler=None):
