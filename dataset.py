@@ -22,23 +22,23 @@ class SketchViewDataset(Dataset):
         self.triples = triples
         self.labels = labels
 
-        # Calcola dimensione immagine (assumendo quadrata)
+        # Calculate image size (assuming square image nxn)
         self.img_size = int(np.sqrt(sketches.shape[1]))
 
     def __len__(self):
         return len(self.triples)
 
     def __getitem__(self, idx):
-        # Estrae indici dalla tripla
+        # Extract Triple index
         sketch_idx, view_idx, sketch_peer_idx, view_peer_idx = self.triples[idx]
 
-        # Estrae immagini e reshape a (1, H, W)
+        # Extract images and reshape at (1, H, W)
         sketch = self.sketches[sketch_idx].view(1, self.img_size, self.img_size)
         view = self.views[view_idx].view(1, self.img_size, self.img_size)
         sketch_peer = self.sketches[sketch_peer_idx].view(1, self.img_size, self.img_size)
         view_peer = self.views[view_peer_idx].view(1, self.img_size, self.img_size)
 
-        # Estrae label
+        # Extract label
         pos_neg, sketch_label, view_label = self.labels[idx].tolist()
 
         return {
@@ -51,7 +51,7 @@ class SketchViewDataset(Dataset):
         }
 
 
-class SketchOnlyDataset(Dataset):
+""" class SketchOnlyDataset(Dataset):
     def __init__(self, sketches, labels=None):
         self.sketches = torch.from_numpy(sketches).float()
         self.labels = labels
@@ -82,4 +82,4 @@ class ViewOnlyDataset(Dataset):
         out = {"x": x}
         if self.labels is not None:
             out["label"] = torch.tensor(int(self.labels[idx]), dtype=torch.long)
-        return out
+        return out """

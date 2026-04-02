@@ -46,79 +46,76 @@ def load_all_dataset_components(prm):
 # Triples Generator
 def generate_pairs_shrec13(prm, sketch_labels, view_labels):
     """
-    Genera coppie per training
+    Generate couples for training
 
-    Formato triples: [sketch_idx, view_idx, sketch_peer_idx, view_peer_idx]
-    Formato labels: [match_flag, sketch_class, view_class]
+    Triples format: [sketch_idx, view_idx, sketch_peer_idx, view_peer_idx]
+    Labels format: [match_flag, sketch_class, view_class]
 
-    - match_flag: 0 = coppia positiva (stessa classe), 1 = coppia negativa (classi diverse)
-    - sketch_peer: sempre dalla stessa classe di sketch
-    - view_peer: sempre dalla stessa classe di view
+    - match_flag: 0 = positive pair (same class), 1 = negative pair (different class)
+    - sketch_peer: always from the same class as sketch
+    - view_peer: always from the same class as view
     """
-
+    # prepare the output
     triples = []
     labels = []
 
-    sketch_labels = sketch_labels.flatten()
-    view_labels = view_labels.flatten()
-    categories = np.unique(sketch_labels)
+    sketch_labels = sketch_labels.flatten() # reduce array to 1D for easier indexing
+    view_labels = view_labels.flatten() # reduce array to 1D for easier indexing
+    categories = np.unique(sketch_labels) # list of all classes
 
-    max_pos = 50  # Max sketch per classe
-    max_pos_view = 50  # Max view positive per classe
+    max_sketch = 50  # Max sketch per class 
+    max_pos_view = 50  # Max view positive per class
     max_neg_view = 50  # Max view negative
 
     posCt = 0
     negCt = 0
 
-    for c in categories:
-        # ===== SKETCH DELLA CLASSE CORRENTE =====
-        inclass_sketch = np.where(sketch_labels == c)[0]
-        if len(inclass_sketch) == 0:
+    for c in categories: # itera su tutte le classi c
+    
+        # ===== SKETCH OF THE CURRENT CLASS =====
+        selected_sketch = select_random(sketch_labels, c, max_sketch, positive_negative=True)
+        if len(selected_sketch) == 0:
+            continue
+        
+        # ===== VIEW OF THE CURRENT CLASS (for positive pairs) =====
+        # same operations as before but with views
+        selected_view = select_random(view_labels, c, max_pos_view, positive_negative=True)
+        if len(selected_view) == 0:
             continue
 
-        # Limita e mischia
-        sketch_ind = np.arange(len(inclass_sketch))
-        prm.rng.shuffle(sketch_ind)
-        selected_sketch = inclass_sketch[sketch_ind[:min(max_pos, len(sketch_ind))]]
-
-        # ===== VIEW DELLA CLASSE CORRENTE (per coppie positive) =====
-        inclass_view = np.where(view_labels == c)[0]
-        if len(inclass_view) == 0:
+        # ===== VIEW OF OTHER CLASSES (for negative pairs) =====
+        other_view_selected = select_random(view_labels, c, max_neg_view, positive_negative=False)
+        if len(other_view_selected) == 0:
             continue
 
-        # Limita e mischia
-        view_ind = np.arange(len(inclass_view))
-        prm.rng.shuffle(view_ind)
-        selected_view = inclass_view[view_ind[:min(max_pos_view, len(view_ind))]]
-
-        # ===== VIEW DI ALTRE CLASSI (per coppie negative) =====
-        other_view = np.where(view_labels != c)[0]
-        if len(other_view) == 0:
-            continue
-
-        # Limita e mischia
-        view_neg_ind = np.arange(len(other_view))
-        prm.rng.shuffle(view_neg_ind)
-        other_view_selected = other_view[view_neg_ind[:min(max_neg_view, len(view_neg_ind))]]
-
-        # ===== GENERA PEER PER POSITIVE =====
-        # sketch_peer: sketch casuali dalla stessa classe c
-        sketch_pos_peer = prm.rng.choice(inclass_sketch, size=len(selected_view), replace=True)
+        # ===== GENERATE PEER PER POSITIVE =====
+        # sketch_peer: random sketch from the same class c
+        # sketch_pos_peer = prm.rng.choice(inclass_sketch, size=len(selected_view), replace=True) # OLD
+        sketch_pos_peer = select_random(sketch_labels, c, len(selected_view), positive_negative=True) # NEW
+        # why using different sizes and then reduce it to the same size as selected_view? btw they are initialized the same
 
         # view_peer: view casuali dalla stessa classe c (mischiati)
-        view_peer_ind = np.arange(len(selected_view))
+        # to have positive pairs that are not the same
+        # TO DO: chek if they are not the same
+        view_peer_ind = np.arange( len( selected_view ) )
         prm.rng.shuffle(view_peer_ind)
         view_pos_peer = selected_view[view_peer_ind]
 
-        # ===== GENERA COPPIE POSITIVE =====
-        for s in selected_sketch:
-            # Limita a max 5 view positive per sketch
-            for i in range(min(len(selected_view), 5)):
-                v = selected_view[i]
-                sp = sketch_pos_peer[i]
-                vp = view_pos_peer[i]
+        # ===== GENERATE POSITIVE PAIRS: sketch e view belongs to the same class =====
+        # for each selected sketch
+        for sketch in selected_sketch:
+            # get max 5 positive view per sketch
+            for i in range( min ( len ( selected_view ), 5 ) ) :
+                index = random.randint(0, len(selected_view) - 1)
+                view = selected_view[index]
 
-                triples.append([s, v, sp, vp])
+                index = random.randint(0, len(sketch_pos_peer) - 1)
+                sketch_positive = sketch_pos_peer[index]
+                
+                index = random.randint(0, len(view_pos_peer) - 1)
+                view_positive = view_pos_peer[index]
+
+                triples.append([sketch, view, sketch_positive, view_positive])
                 labels.append([0, int(c), int(c)])  # match=0, entrambi classe c
                 posCt += 1
 
@@ -164,6 +161,25 @@ def generate_pairs_shrec13(prm, sketch_labels, view_labels):
 
     return triples[idx], labels[idx]
 
+def select_random( array, category, num_samples, positive_negative: bool = True):
+    """
+    Select num_samples array elements choosen randomly.
+    If positive_negative is True, selects elements equal to category (positive samples).
+    If False, selects elements different from category (negative samples).
+    If there are fewer than num_samples elements in the category, return all of them.
+    """
+    if positive_negative:
+        inclass = np.where(array == category)[0] #filter sketch class
+    else:
+        inclass = np.where(array != category)[0] #filter out the specified category
+    if len(inclass) == 0:
+        return np.array([])
+
+    # mix and limit: create index for each sketch in the current class, shuffle it, and select a subset based on max_pos
+    indexes = np.arange( len( inclass ) ) # create index for each sketch in the current class
+    prm.rng.shuffle(indexes) # shuffle the indices to randomize the order of sketches
+    return inclass[indexes[:min(num_samples, len(indexes))]] # choose a subset of sketches based on the shuffled indices, with a maximum limit of max_sketch
+
 # Global Data Loader
 def load_shrec13_data(prm):
     """
@@ -190,7 +206,7 @@ def load_shrec13_data(prm):
     if 'model_to_class' not in globals():
         model_to_class = {}
 
-    # Path delle directory
+    # directories Paths
     train_sketch_dir = Path('/content/train_schetch')
     test_sketch_dir = Path('/content/test_schetch')
     views_dir = Path('/content/views')
@@ -203,7 +219,7 @@ def load_shrec13_data(prm):
         with open(class_file, 'r') as f:
             lines = f.readlines()
 
-        # Salta le prime 2 righe (header)
+        # Skip first two lines (header)
         i = 2
         current_class_id = -1
         num_models_remaining = 0
@@ -211,26 +227,26 @@ def load_shrec13_data(prm):
         while i < len(lines):
             line = lines[i].strip()
 
-            # Salta righe vuote o solo spazi
+            # Skip empty lines or lines with only spaces
             if not line:
                 i += 1
                 continue
 
             parts = line.split()
 
-            # Se la riga ha 3 parti: category_name 0 num_models
+            # If the line has 3 parts: category_name 0 num_models
             if len(parts) == 3 and parts[1] == '0':
-                category_name = parts[0]  # es: "airplane"
-                num_models = int(parts[2])  # es: 184
+                category_name = parts[0]  # example: "airplane"
+                num_models = int(parts[2])  # example: 184
 
-                # Assegna un class_id progressivo
+                # Assign a progressive class_id
                 current_class_id = len(label_names)
                 label_names.append(category_name)
                 class_name_to_id[category_name.lower()] = current_class_id
 
                 num_models_remaining = num_models
 
-            # Altrimenti è un model_id
+            # Otherwise it's a model_id
             elif len(parts) == 1 and parts[0].isdigit():
                 model_id = parts[0]
                 if current_class_id >= 0 and num_models_remaining > 0:
@@ -258,11 +274,11 @@ def load_views_from_dir(views_dir, prm):
     views_list = []
     view_labels_list = [] # Initialize view_labels_list
 
-    # Carica tutti i PNG nella cartella
+    # Load all PNG files in the directory
     png_files = sorted(views_dir.glob('*.png'))
 
     for png_file in png_files:
-        # Leggi immagine in grayscale
+        # Read image in grayscale
         img = cv2.imread(str(png_file), cv2.IMREAD_GRAYSCALE)
 
         if img is None:
@@ -272,9 +288,9 @@ def load_views_from_dir(views_dir, prm):
 
         if shape[0] != prm.inputWH or shape[1] != prm.inputWH:
           img = cv2.resize(img, (prm.inputWH, prm.inputWH))
-        # controllare meglio il resizing se non è troppo
+        # TO DO: check resizing
 
-        # Normalizza [0, 255] → [0, 1]
+        # Normalize [0, 255] → [0, 1]
         img = img.astype(np.float32) / 255.0
 
         # Flatten
@@ -306,20 +322,20 @@ def load_sketches_from_dir(sketch_dir, prm):
         if not class_folder.is_dir():
             continue
 
-        class_name = class_folder.name.lower()  # es: "airplane"
+        class_name = class_folder.name.lower()  # example: "airplane"
 
-        # Ottieni class_id dalla mappa
+        # Get the ID from the class name
         class_id = class_name_to_id.get(class_name, -1)
 
         if class_id == -1:
             print(f"Warning: categoria '{class_name}' non trovata in .cla file")
             continue
 
-        # Carica tutti i PNG nella cartella
+        # Load all PNG files in the directory
         png_files = sorted(class_folder.glob('*.png'))
 
         for png_file in png_files:
-            # Leggi immagine in grayscale
+            # Read image in grayscale
             img = cv2.imread(str(png_file), cv2.IMREAD_GRAYSCALE)
 
             if img is None:
@@ -327,9 +343,9 @@ def load_sketches_from_dir(sketch_dir, prm):
 
             # Resize a 100×100
             img = cv2.resize(img, (prm.inputWH, prm.inputWH))
- # controllare meglio il resizing se non è troppo
+            # TO DO: check resizing
 
-            # Normalizza [0, 255] → [0, 1]
+            # Normalize [0, 255] → [0, 1]
             img = img.astype(np.float32) / 255.0
 
             # Flatten
