@@ -183,8 +183,8 @@ def run_case(prm: Parameters, run_mode: str, all_data: dict):
     Run a single case in train or test mode.
     Returns best_epoch_from_train if run_mode is "train".
     """
-    ensure_dir(prm.model_dir)
-    ensure_dir(prm.feats_dir)
+    os.makedirs(prm.model_dir, exist_ok=True)
+    os.makedirs(prm.feats_dir, exist_ok=True)
 
     print("\n" + "=" * 80)
     print(f"CASE: {prm.exp_name} / {prm.exp_suffix} | mode={run_mode} | device={prm.device}")
