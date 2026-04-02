@@ -1,6 +1,7 @@
 import os
 
-from ML_Project.Parameters import Parameters
+import Parameters
+#from ML_Project.Parameters import Parameters
 
 # Epoch training
 def train_epoch(model, train_loader, optimizer, prm, epoch, scheduler=None):
@@ -191,7 +192,7 @@ def run_case(prm: Parameters, run_mode: str, all_data: dict):
     print("\n" + "=" * 80)
     print(f"CASE: {prm.exp_name} / {prm.exp_suffix} | mode={run_mode} | device={prm.device}")
     print("=" * 80)
-    pprint(vars(prm))
+    print(vars(prm))
 
     best_epoch_from_train = None
 
