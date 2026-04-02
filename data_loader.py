@@ -73,25 +73,25 @@ def generate_pairs_shrec13(prm, sketch_labels, view_labels):
     for c in categories: # itera su tutte le classi c
     
         # ===== SKETCH OF THE CURRENT CLASS =====
-        selected_sketch = select_random(sketch_labels, c, max_sketch, positive_negative=True)
+        selected_sketch = select_random(prm, sketch_labels, c, max_sketch, positive_negative=True)
         if len(selected_sketch) == 0:
             continue
         
         # ===== VIEW OF THE CURRENT CLASS (for positive pairs) =====
         # same operations as before but with views
-        selected_view = select_random(view_labels, c, max_pos_view, positive_negative=True)
+        selected_view = select_random(prm, view_labels, c, max_pos_view, positive_negative=True)
         if len(selected_view) == 0:
             continue
 
         # ===== VIEW OF OTHER CLASSES (for negative pairs) =====
-        other_view_selected = select_random(view_labels, c, max_neg_view, positive_negative=False)
+        other_view_selected = select_random(prm, view_labels, c, max_neg_view, positive_negative=False)
         if len(other_view_selected) == 0:
             continue
 
         # ===== GENERATE PEER PER POSITIVE =====
         # sketch_peer: random sketch from the same class c
         # sketch_pos_peer = prm.rng.choice(inclass_sketch, size=len(selected_view), replace=True) # OLD
-        sketch_pos_peer = select_random(sketch_labels, c, len(selected_view), positive_negative=True) # NEW
+        sketch_pos_peer = select_random(prm, sketch_labels, c, len(selected_view), positive_negative=True) # NEW
         # why using different sizes and then reduce it to the same size as selected_view? btw they are initialized the same
 
         # view_peer: view casuali dalla stessa classe c (mischiati)
@@ -161,7 +161,7 @@ def generate_pairs_shrec13(prm, sketch_labels, view_labels):
 
     return triples[idx], labels[idx]
 
-def select_random( array, category, num_samples, positive_negative: bool = True):
+def select_random(prm, array, category, num_samples, positive_negative: bool = True):
     """
     Select num_samples array elements choosen randomly.
     If positive_negative is True, selects elements equal to category (positive samples).
