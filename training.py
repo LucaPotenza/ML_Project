@@ -1,3 +1,5 @@
+import os
+
 from ML_Project.Parameters import Parameters
 
 # Epoch training
