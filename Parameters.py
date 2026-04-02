@@ -53,18 +53,18 @@ class Parameters:
         # Random number generator for reproducibility in sampling
         self.rng = np.random.default_rng(seed=0)
 
-def setup_experiment(self):
-    """
-    Create a Parameters() instance from a config section.
-    Mirrors legacy setupExperiment() behavior at a high level.
-    """
-    self.feats_dir='cache-pytorch/feats-shrec-shrec-default'
-    self.model_dir='cache-pytorch/model-shrec-shrec-default'
-    self.exp_suffix='shrec-default'
-    self.inputWH=100
-    self.epoch_list=[20]
-    self.cnn_spec_vs = 'ds100'
-    self.cnn_spec_ss = 'ds100'
-    self.data_root='/content/data'
-    self.test_mode='test'
-    return self
+    def setup_experiment(self):
+        """
+        Create a Parameters() instance from a config section.
+        Mirrors legacy setupExperiment() behavior at a high level.
+        """
+        self.feats_dir='cache-pytorch/feats-shrec-shrec-default'
+        self.model_dir='cache-pytorch/model-shrec-shrec-default'
+        self.exp_suffix='shrec-default'
+        self.inputWH=100
+        self.epoch_list=[20]
+        self.cnn_spec_vs = 'ds100'
+        self.cnn_spec_ss = 'ds100'
+        self.data_root='/content/data'
+        self.test_mode='test'
+        return self
