@@ -1,3 +1,5 @@
+import Parameters
+
 # Epoch training
 def train_epoch(model, train_loader, optimizer, prm, epoch, scheduler=None):
     """Esegue una singola epoca di training"""
