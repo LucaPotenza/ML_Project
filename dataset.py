@@ -49,37 +49,3 @@ class SketchViewDataset(Dataset):
             'sketch_label': torch.tensor(int(sketch_label), dtype=torch.long),
             'view_label': torch.tensor(int(view_label), dtype=torch.long)
         }
-
-
-""" class SketchOnlyDataset(Dataset):
-    def __init__(self, sketches, labels=None):
-        self.sketches = torch.from_numpy(sketches).float()
-        self.labels = labels
-        self.img_size = int(np.sqrt(sketches.shape[1]))
-
-    def __len__(self):
-        return self.sketches.shape[0]
-
-    def __getitem__(self, idx):
-        x = self.sketches[idx].view(1, self.img_size, self.img_size)
-        out = {"x": x}
-        if self.labels is not None:
-            out["label"] = torch.tensor(int(self.labels[idx]), dtype=torch.long)
-        return out
-
-
-class ViewOnlyDataset(Dataset):
-    def __init__(self, views, labels=None):
-        self.views = torch.from_numpy(views).float()
-        self.labels = labels
-        self.img_size = int(np.sqrt(views.shape[1]))
-
-    def __len__(self):
-        return self.views.shape[0]
-
-    def __getitem__(self, idx):
-        x = self.views[idx].view(1, self.img_size, self.img_size)
-        out = {"x": x}
-        if self.labels is not None:
-            out["label"] = torch.tensor(int(self.labels[idx]), dtype=torch.long)
-        return out """
