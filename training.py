@@ -85,7 +85,9 @@ def train_epoch(model, train_loader, optimizer, prm, epoch, scheduler=None):
 
 # Train model
 def train_model(prm, sketches, views, sketch_label, view_label, triples, labels):
-    """Funzione principale di training"""
+    """Main Training function"""
+
+    print(sketches.shape, views.shape, triples.shape, labels.shape)
 
     # Sanity checks (fail fast)
     assert sketches.ndim == 2 and views.ndim == 2, "Expected flat vectors in .mat datax"
